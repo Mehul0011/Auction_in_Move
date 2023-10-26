@@ -1,6 +1,7 @@
 module addr::Counter {
     use std::signer;
     use std::option;
+    
     // use aptos_framework::account;
     struct Counter has key, store {
         val: u256
@@ -17,12 +18,11 @@ module addr::Counter {
         };
     }
 
-
-    public fun get_counter(owner: &signer): option::Option<u256> acquires Counter {
-        let signer_address = signer::address_of(owner);
+    #[view]
+    public fun get_counter(owner: address): option::Option<u256> acquires Counter {
         let counter;
-        if(exists<Counter>(signer_address)) {
-            counter = borrow_global<Counter>(signer_address).val;
+        if(exists<Counter>(owner)) {
+            counter = borrow_global<Counter>(owner).val;
             option::some(counter)
         }
         else {
@@ -53,17 +53,20 @@ module addr::Counter {
 
     #[test(account=@addr)]
     public fun test_counter(account: &signer) acquires Counter {
+        use std::string;
+        debug::print(&get_counter(signer::address_of(account)));
         initialise(account);
 
-        let counter = get_counter(account);
+        let counter = get_counter(signer::address_of(account));
         debug::print(&counter);
+        debug::print(&string::utf8(b"Hello: "));
         
         assert!(counter == option::some(0), ERROR_INITIALISING);
         
         increment(account);
-        assert!(get_counter(account) == option::some(1), ERROR);
+        assert!(get_counter(signer::address_of(account)) == option::some(1), ERROR);
         
         delete_counter(account);
-        assert!(get_counter(account) == option::none(), ERROR);
+        assert!(get_counter(signer::address_of(account)) == option::none(), ERROR);
     }
 }
